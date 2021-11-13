@@ -76,6 +76,40 @@ async function run() {
 
         res.json(result);
         });
+
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            const result = await usersCollection.insertOne(user);
+            console.log(result);
+            res.json(result);
+        });
+
+        app.put('/users', async (req, res) => {
+            const user = req.body;
+            const filter = { email: user.email };
+            const options = { upsert: true };
+            const updateDoc = { $set: user };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.json(result);
+        });
+
+        app.put('/users/admin', verifyToken, async (req, res) => {
+            const user = req.body;
+            const requester = req.decodedEmail;
+            if (requester) {
+                const requesterAccount = await usersCollection.findOne({ email: requester });
+                if (requesterAccount.role === 'admin') {
+                    const filter = { email: user.email };
+                    const updateDoc = { $set: { role: 'admin' } };
+                    const result = await usersCollection.updateOne(filter, updateDoc);
+                    res.json(result);
+                }
+            }
+            else {
+                res.status(403).json({ message: 'you do not have access to make admin' })
+            }
+
+        })
     }
     finally {
         // await client.close();
@@ -85,9 +119,9 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Assignment Server Running');
+    res.send('last assignment!!');
 });
 
 app.listen(port, () => {
-    console.log("Example App Port", port)
+    console.log("listening at ", port)
 });
